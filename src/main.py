@@ -5,10 +5,9 @@ from random import randint
 
 pygame.init()
 
+# pygame setup variables
 SCREEN_HEIGHT = 800
 SCREEN_WIDTH = 800
-
-# pygame setup variables
 screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
 pygame.display.set_caption("Cloth Simulation")
 clock = pygame.time.Clock()
@@ -37,7 +36,7 @@ selected_font = pygame.font.Font('assets/font.ttf',
                                  30)  # https://fonts.google.com/specimen/Inconsolata
 
 
-def clear_space(space):
+def clear_space(space: pymunk.Space):
     for body in space.bodies:
         space.remove(body)
     for constraint in space.constraints:
@@ -46,7 +45,11 @@ def clear_space(space):
         space.remove(shape)
 
 
-def convert_coords(point):  # convert to int, transform to pygame y convention
+def convert_coords(point):
+    """
+    Ensures that coordinates are integers and converts cartesian coords to pygame coords
+    (which start with (0, 0) the top left corner, with y increasing as you proceed down the screen
+    """
     return int(point[0]), int(SCREEN_HEIGHT - point[1])
 
 
@@ -56,11 +59,17 @@ def render_text(text, position, color=BLACK):
 
 
 def print_fps():
+    """ prints the framerate to the top left of the screen"""
     render_text(str(f'FPS: {int(clock.get_fps())}'),
                 (10, 10))  # https://stackoverflow.com/questions/67946230/show-fps-in-pygame
 
 
 class PendulumConnector:
+    """
+    This class represents the linkages between nodes in the net, as well as
+    the linkages between static points and nodes that fix the cloth to a position
+    """
+
     def __init__(self, body, link, link_type='body'):
         self.body = body
         if link_type == 'body':
@@ -80,6 +89,10 @@ class PendulumConnector:
 
 
 class PendulumPoint:
+    """
+    This class represents the free nodes in the cloth (i.e. those that are not attached to static points)
+    """
+
     def __init__(self, x, y, number=5):
         # pymunk properties
         self.body = pymunk.Body()
@@ -122,7 +135,11 @@ class PendulumPoint:
         self.draw_trail = not self.draw_trail
 
 
-class Net:
+class ClothNet:
+    """
+    This class synthesizes a simulated cloth out of PendulumPoint and PendulumConnector instances
+    """
+
     def __init__(self, x, y, size, separation):
         self.n_rows = size
         self.n_cols = size
@@ -182,21 +199,24 @@ class Net:
         for point in self.free_nodes:
             point.draw()
 
-
-    def apply_force(self):
-        pass
-
-    def apply_disturbance(self):
+    def apply_disturbance(self):  # note: this only applies a rightward disturbance
         for node in self.free_nodes:
             node.body.apply_impulse_at_local_point((1000, 0))
+
+    def apply_random_disturbance(self):
+        """
+        Applies a random impulse at each node.
+        """
+        for node in self.free_nodes:
+            node.body.apply_impulse_at_local_point((100 * randint(-100, 100), 100 * randint(-100, 100)))
 
     def toggle_trails(self):
         for node in self.free_nodes:
             node.toggle_trail()
 
 
-test_params = [100, 800, 30, 20]
-test_net = Net(*test_params)
+default_parameters = [100, 800, 30, 20]
+example_cloth = ClothNet(*default_parameters)
 
 run = True
 play = True
@@ -217,26 +237,26 @@ while run:
                 print(f'FPS increased to {FPS}')
             if event.key == pygame.K_r:
                 space.remove(*space.bodies, *space.shapes, *space.constraints)
-                test_net = Net(*test_params)
+                example_cloth = ClothNet(*default_parameters)
                 print(f'Simulation reset')
             if event.key == pygame.K_i:
-                test_net.apply_disturbance()
+                example_cloth.apply_disturbance()
+            if event.key == pygame.K_p:
+                example_cloth.apply_random_disturbance()
             if event.key == pygame.K_t:
-                test_net.toggle_trails()
+                example_cloth.toggle_trails()
                 print(f'Node trails toggled')
 
     if play:
         screen.fill(WHITE)
-
         space.step(1 / FPS)
-        test_net.draw()
+        example_cloth.draw()
         if show_FPS:
             print_fps()
 
     else:
         screen.fill(GREY)
-        test_net.draw()
-
+        example_cloth.draw()
         if show_FPS:
             print_fps()
 
