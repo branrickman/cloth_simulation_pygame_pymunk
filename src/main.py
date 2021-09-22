@@ -84,14 +84,14 @@ class PendulumPoint:
         # pymunk properties
         self.body = pymunk.Body()
         self.body.position = x, y
-        self.shape = pymunk.Circle(self.body, 10)
+        self.shape = pymunk.Circle(self.body, 4)
         self.shape.density = 1
         self.shape.elasticity = 1
         self.shape.collision_type = 2
         self.position_log = []
         self.position_trail_radius = 5
 
-        self.radius = 10
+        self.radius = 4
         self.color = color_list[number]
 
         space.add(self.body, self.shape)
@@ -157,10 +157,11 @@ class Net:
     def draw(self):
         for connector in self.connectors:
             connector.draw()
-        for point in self.free_nodes:
-            point.draw()
         for fixed_node in self.fixed_nodes:
             fixed_node.draw()
+        for point in self.free_nodes:
+            point.draw()
+
 
     def apply_force(self):
         pass
@@ -170,7 +171,8 @@ class Net:
             node.body.apply_impulse_at_local_point((1000, 0))
 
 
-test_net = Net(100, 800, 10, 25)
+test_params = [100, 800, 30, 20]
+test_net = Net(*test_params)
 
 run = True
 play = True
@@ -191,8 +193,7 @@ while run:
                 print(f'FPS increased to {FPS}')
             if event.key == pygame.K_r:
                 space.remove(*space.bodies, *space.shapes, *space.constraints)
-                # clear_space(space)
-                test_net = Net(100, 800, 10, 25)
+                test_net = Net(*test_params)
                 print(f'Simulation reset')
             if event.key == pygame.K_i:
                 test_net.apply_disturbance()
