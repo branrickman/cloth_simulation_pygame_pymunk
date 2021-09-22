@@ -1,6 +1,7 @@
 import pygame
 import pymunk
 from sys import exit
+from random import randint
 
 pygame.init()
 
@@ -11,12 +12,12 @@ SCREEN_WIDTH = 800
 screen = pygame.display.set_mode((SCREEN_HEIGHT, SCREEN_WIDTH))
 pygame.display.set_caption("Cloth Simulation")
 clock = pygame.time.Clock()
-FPS = 50
+FPS = 200
 show_FPS = True
 
 # pymunk variables
 space = pymunk.Space()
-space.gravity = (0, -900)
+space.gravity = (0, -800)
 
 # colors
 WHITE = (255, 255, 255)
@@ -34,6 +35,15 @@ color_list = [RED, ORANGE, YELLOW, GREEN, BLUE, PURPLE]
 # fonts
 selected_font = pygame.font.Font('assets/font.ttf',
                                  30)  # https://fonts.google.com/specimen/Inconsolata
+
+
+def clear_space(space):
+    for body in space.bodies:
+        space.remove(body)
+    for constraint in space.constraints:
+        space.remove(constraint)
+    for shape in space.shapes:
+        space.remove(shape)
 
 
 def convert_coords(point):  # convert to int, transform to pygame y convention
@@ -92,34 +102,8 @@ class PendulumPoint:
         pygame.draw.circle(screen, self.color, converted_position, self.radius)
 
 
-class Pendulum:
-    def __init__(self, x1, y1, x2, y2, number, x3=(SCREEN_WIDTH // 2), y3=(SCREEN_HEIGHT // 2), mode=0):
-        self.pend_point1 = PendulumPoint(x1, y1, number)
-        self.pend_point2 = PendulumPoint(x2, y2, number + 4)
-        self.pend_conn1 = PendulumConnector(self.pend_point1.body, (x3, y3), link_type='static_body')
-        self.pend_conn2 = PendulumConnector(self.pend_point1.body, self.pend_point2.body, link_type='body')
-        self.static_x = x3
-        self.static_y = y3
-        self.mode = mode
-        self.draw_trail = True
-
-    def draw(self):
-        if self.draw_trail:
-            for i in range(len(self.pend_point1.position_log)):
-                pygame.draw.circle(screen, self.pend_point1.color, self.pend_point1.position_log[i],
-                                   self.pend_point1.position_trail_radius)
-            for i in range(len(self.pend_point2.position_log)):
-                pygame.draw.circle(screen, self.pend_point2.color, self.pend_point2.position_log[i],
-                                   self.pend_point2.position_trail_radius)
-        if self.mode:
-            self.pend_conn1.draw()
-            self.pend_conn2.draw()
-        self.pend_point1.draw()
-        self.pend_point2.draw()
-
-
 class Net:
-    def __init__(self, x, y, size, separation, pinned):
+    def __init__(self, x, y, size, separation):
         self.n_rows = size
         self.n_cols = size
         self.sep = separation
@@ -154,7 +138,7 @@ class Net:
 
         # set connections for each free node to each NSEW neighbor
         for i in range(len(self.free_nodes)):
-            # Propogate connections from top left to bottom right (only S and E)
+            # Propagate connections from top left to bottom right (only S and E)
             # Vertical
             if i % (self.n_rows - 1) == self.n_rows - 2:  # TODO make this not demand an n x n grid
                 pass
@@ -164,19 +148,11 @@ class Net:
             # horizontal
             if i >= len(self.free_nodes) - (
                     self.n_rows - 1):  # ignore last column to the right (since we're connecting to the right)
-                print(i)
+                pass
             elif i < len(self.free_nodes) - (self.n_rows - 1):  # don't try to connect last column to the right
                 connection = PendulumConnector(self.free_nodes[i].body, self.free_nodes[i + (self.n_rows - 1)].body,
                                                link_type='body')
                 self.connectors.append(connection)
-
-        # initialize free nodes
-        # for (x, y) in self.free:
-        #     pass
-        # # initialize pinned nodes
-        # for (x, y) in self.pinned:
-        #     pass
-        #     pinned_point = PendulumConnector
 
     def draw(self):
         for connector in self.connectors:
@@ -186,16 +162,16 @@ class Net:
         for fixed_node in self.fixed_nodes:
             fixed_node.draw()
 
+    def apply_force(self):
+        pass
 
-test_net = Net(300, 500, 4, 100, 0)
-# pendulum1 = Pendulum(200, 500, 300, 700, number=1, mode=True)
+    def apply_disturbance(self):
+        for node in self.free_nodes:
+            node.body.apply_impulse_at_local_point((1000, 0))
 
-# pendulum_group = [pendulum1]
 
-# pp1 = PendulumPoint(100, 500, 3)
-# pend_conn1 = PendulumConnector(pp1.body, (200, 700), link_type='static_body')
+test_net = Net(100, 800, 10, 25)
 
-click_counter = 1  # tracks odd and even clicks to generate new pendulums
 run = True
 play = True
 while run:
@@ -214,44 +190,27 @@ while run:
                 FPS += 1
                 print(f'FPS increased to {FPS}')
             if event.key == pygame.K_r:
-                # initialize_pendulums()
-                print(f'Pendulums reset')
-            # if event.key == pygame.K_t:
-            #     for p in pendulum_group:
-            #         p.draw_trail = not p.draw_trail
-            #     print(f'Pendulum trails toggled')
-            # if event.key == pygame.K_c:
-            #     for p in pendulum_group:
-            #         p.pend_point1.position_log = []
-            #         p.pend_point2.position_log = []
-            #     print(f'Pendulum trails cleared')
-            # if event.key == pygame.K_m:
-            #     for p in pendulum_group:
-            #         p.mode = not p.mode
-            #     print(f'Pendulum trails toggled')
-        # mouse_event = pygame.mouse.get_pressed()
-        # if mouse_event[0]:
-        #     pos1 = pygame.mouse.get_pos()
-        #     pendulum1.pend_point2.body.position = convert_coords(pos1)
-        #     pendulum1.pend_point1.body.position = convert_coords(
-        #         ((pos1[0] + pendulum1.static_x) // 2, (pos1[1] + pendulum1.static_y) // 2))
-        #     # DEBUG
-        #     # print(f'static: {(pendulum1.static_x, pendulum1.static_y)} \n'
-        #     #       f'point2: {pos1}\n'
-        #     #       f'point1: {pendulum1.pend_point1.body.position}')
+                space.remove(*space.bodies, *space.shapes, *space.constraints)
+                # clear_space(space)
+                test_net = Net(100, 800, 10, 25)
+                print(f'Simulation reset')
+            if event.key == pygame.K_i:
+                test_net.apply_disturbance()
+
     if play:
         screen.fill(WHITE)
+
         space.step(1 / FPS)
         test_net.draw()
         if show_FPS:
             print_fps()
 
+
     else:
         screen.fill(GREY)
-        # for pendulum in pendulum_group:
-        #     pendulum.draw()
 
         if show_FPS:
             print_fps()
+
     clock.tick(FPS)
     pygame.display.update()
