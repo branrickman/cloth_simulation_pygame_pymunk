@@ -5,6 +5,7 @@
 ##### General Controls:
  * "**R**" to **R**eset
  * "**I**" to apply an **I**mpulse
+ * "T" to toggle **T**rails
 
 ##### Time Controls: 
 >###### Conceptual model: 

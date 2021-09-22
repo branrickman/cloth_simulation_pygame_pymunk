@@ -86,20 +86,40 @@ class PendulumPoint:
         self.body.position = x, y
         self.shape = pymunk.Circle(self.body, 4)
         self.shape.density = 1
-        self.shape.elasticity = 1
+        self.shape.elasticity = 0.8
         self.shape.collision_type = 2
-        self.position_log = []
-        self.position_trail_radius = 5
-
         self.radius = 4
         self.color = color_list[number]
+
+        # trail
+        self.draw_trail = False
+        self.trail_color = BLACK
+        self.position_log = []
+        self.position_trail_radius = 2
+        self.position_log_depth = 20
+        self.steps = 0
 
         space.add(self.body, self.shape)
 
     def draw(self):
+        if self.draw_trail:
+            # draw trail
+            if self.steps >= self.position_log_depth:
+                self.position_log[self.steps % self.position_log_depth] = convert_coords(self.body.position)
+            elif self.steps < self.position_log_depth:
+                self.position_log.append(convert_coords(self.body.position))
+                print(len(self.position_log))
+            self.steps += 1
+            for i in range(len(self.position_log)):
+                pygame.draw.circle(screen, self.trail_color, self.position_log[i],
+                                   self.position_trail_radius)
+
+        # draw body
         converted_position = convert_coords(self.body.position)
-        self.position_log.append(converted_position)
         pygame.draw.circle(screen, self.color, converted_position, self.radius)
+
+    def toggle_trail(self):
+        self.draw_trail = not self.draw_trail
 
 
 class Net:
@@ -170,6 +190,10 @@ class Net:
         for node in self.free_nodes:
             node.body.apply_impulse_at_local_point((1000, 0))
 
+    def toggle_trails(self):
+        for node in self.free_nodes:
+            node.toggle_trail()
+
 
 test_params = [100, 800, 30, 20]
 test_net = Net(*test_params)
@@ -197,6 +221,9 @@ while run:
                 print(f'Simulation reset')
             if event.key == pygame.K_i:
                 test_net.apply_disturbance()
+            if event.key == pygame.K_t:
+                test_net.toggle_trails()
+                print(f'Node trails toggled')
 
     if play:
         screen.fill(WHITE)
