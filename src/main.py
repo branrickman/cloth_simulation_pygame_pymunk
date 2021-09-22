@@ -205,9 +205,9 @@ while run:
         if show_FPS:
             print_fps()
 
-
     else:
         screen.fill(GREY)
+        test_net.draw()
 
         if show_FPS:
             print_fps()
